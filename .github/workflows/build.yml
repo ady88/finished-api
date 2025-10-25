@@ -1,0 +1,90 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Clean and compile
+        run: mvn clean compile
+
+      - name: Verify module descriptor
+        run: java --module-path target/classes --describe-module com.adrian.finished.api
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Package JAR
+        run: mvn package
+
+      - name: Debug available modules
+        run: |
+          # Copy dependencies to a local directory
+          mvn dependency:copy-dependencies -DoutputDirectory=target/dependencies
+          
+          # List what we have
+          echo "=== Available JARs ==="
+          ls -la target/dependencies/
+          
+          # Check what modules are available
+          echo "=== Available modules in dependencies ==="
+          for jar in target/dependencies/*.jar; do
+            echo "Checking $jar:"
+            jar --describe-module --file="$jar" || echo "  No module descriptor found"
+            echo ""
+          done
+
+      - name: Test jlink compatibility (simplified)
+        run: |
+          # Copy dependencies first
+          mvn dependency:copy-dependencies -DoutputDirectory=target/dependencies
+          
+          # Include dependencies in module path for jlink
+          jlink --module-path target/classes:target/dependencies:$JAVA_HOME/jmods \
+                --add-modules com.adrian.finished.api \
+                --output custom-runtime-basic \
+                --compress 2
+          echo "Basic jlink test successful"
+          ls -la custom-runtime-basic/
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: finished-api-jar
+          path: target/*.jar
+          retention-days: 30
+
+      - name: Publish to GitHub Packages
+        if: github.ref == 'refs/heads/master'
+        run: mvn deploy
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
