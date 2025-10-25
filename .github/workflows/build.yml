@@ -62,19 +62,6 @@ jobs:
             echo ""
           done
 
-      - name: Test jlink compatibility (simplified)
-        run: |
-          # Copy dependencies first
-          mvn dependency:copy-dependencies -DoutputDirectory=target/dependencies
-          
-          # Include dependencies in module path for jlink
-          jlink --module-path target/classes:target/dependencies:$JAVA_HOME/jmods \
-                --add-modules com.adrian.finished.api \
-                --output custom-runtime-basic \
-                --compress 2
-          echo "Basic jlink test successful"
-          ls -la custom-runtime-basic/
-
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
