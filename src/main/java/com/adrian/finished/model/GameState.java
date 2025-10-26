@@ -14,7 +14,8 @@ public record GameState(
         PastArea past,
         List<FutureArea> futureAreas,
         FinishedPile finishedPile,
-        int activeAllCardsInFutureAreas
+        int activeAllCardsInFutureAreas,
+        boolean gameEnd
 ) {
     public GameState {
         Objects.requireNonNull(activeStash, "activeStash");
@@ -30,5 +31,22 @@ public record GameState(
         if (activeAllCardsInFutureAreas < 0) {
             throw new IllegalArgumentException("activeAllCardsInFutureAreas cannot be negative");
         }
+    }
+
+    /**
+     * Convenience constructor for existing code that doesn't specify gameEnd flag.
+     * Defaults gameEnd to false.
+     */
+    public GameState(
+            Stash activeStash,
+            Stash reservedStash,
+            DrawStack drawStack,
+            PresentArea present,
+            PastArea past,
+            List<FutureArea> futureAreas,
+            FinishedPile finishedPile,
+            int activeAllCardsInFutureAreas
+    ) {
+        this(activeStash, reservedStash, drawStack, present, past, futureAreas, finishedPile, activeAllCardsInFutureAreas, false);
     }
 }
