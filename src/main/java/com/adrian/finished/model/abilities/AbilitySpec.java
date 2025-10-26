@@ -100,7 +100,7 @@ public enum AbilitySpec {
             List.of(48),
             1,
             AbilityPhase.TURN_END,
-            7,
+            6,
             List.of(8, 10),
             1
     ),
